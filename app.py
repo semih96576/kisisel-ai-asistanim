@@ -35,8 +35,25 @@ def chat():
 
     def generate():
         if not client:
-            error_msg = "Sistem Hatası: API Anahtarı bulunamadı. Lütfen bir .env dosyası oluşturup ANTHROPIC_API_KEY=anahtariniz şeklinde ekleyin."
-            yield f"data: {json.dumps({'text': error_msg})}\n\n"
+            # Demo modunda simüle edilmiş akış yanıtı ver
+            user_message = messages[-1]["content"] if messages else ""
+            demo_response = (
+                f"Merhaba! Ben **semihcim4.0**.\n\n"
+                f"Şu anda `.env` dosyasında geçerli bir API anahtarı tanımlanmadığı için **Demo (Simülasyon) Modunda** çalışıyorum. "
+                f"Arayüzün ve akış (streaming) yapısının ne kadar akıcı çalıştığını görmeniz için bu yanıtı simüle ediyorum.\n\n"
+                f"Yazdığınız mesajı aldım: *\"{user_message}\"*\n\n"
+                f"Gerçek Claude yapay zeka yanıtlarını almak için lütfen projenin ana dizinine bir `.env` dosyası oluşturup "
+                f"içine `ANTHROPIC_API_KEY=sizin_anahtariniz` şeklinde API anahtarınızı ekleyin ve uygulamayı yeniden başlatın!"
+            )
+            import time
+            # Kelime kelime simüle ederek akış efekti yarat
+            words = demo_response.split(" ")
+            current_text = ""
+            for i, word in enumerate(words):
+                space = " " if i > 0 else ""
+                current_text += space + word
+                yield f"data: {json.dumps({'text': space + word})}\n\n"
+                time.sleep(0.05) # Okuma hızında akış simülasyonu
             yield "data: [DONE]\n\n"
             return
 
