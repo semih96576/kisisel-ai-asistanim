@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>semihcim4.0 — AI Assistant</title>
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #0f0f1a;
+      --bg-card: #12121f;
+      --bg-input: #1a1a2e;
+      --border: #1e1e3a;
+      --border-glow: #3a3a6a;
+      --accent: #6c63ff;
+      --accent-dim: #4a43cc;
+      --accent-glow: rgba(108, 99, 255, 0.25);
+      --text-primary: #e8e8f0;
+      --text-secondary: #8888aa;
+      --text-muted: #555580;
+      --user-bubble: #1e1e3a;
+      --ai-bubble: #0f0f1f;
+      --success: #00d4aa;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      position: relative;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.4;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .logo-text {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #a78bfa, var(--accent), #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .logo-badge {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(0, 212, 170, 0.1);
+      border: 1px solid rgba(0, 212, 170, 0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: var(--success);
+    }
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Main layout ── */
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .sidebar-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      padding: 0 8px 8px;
+    }
+    .new-chat-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    .new-chat-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .new-chat-btn:active { transform: translateY(0); }
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .history-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background .15s;
+    }
+    .history-item:hover { background: var(--bg-input); }
+    .history-item.active {
+      background: var(--bg-input);
+      color: var(--text-primary);
+      border-left: 2px solid var(--accent);
+    }
+    .sidebar-footer {
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .model-tag {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 10px;
+      background: var(--bg-input);
+      border-radius: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .model-tag span { color: var(--accent); font-weight: 600; }
+
+    /* ── Chat area ── */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 0;
+      scroll-behavior: smooth;
+    }
+    .messages::-webkit-scrollbar { width: 4px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* ── Welcome screen ── */
+    .welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 24px;
+      padding: 40px;
+      text-align: center;
+    }
+    .welcome-logo {
+      width: 80px; height: 80px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: 24px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      box-shadow: 0 0 60px var(--accent-glow);
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .welcome h1 {
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #a78bfa, var(--accent), #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .welcome p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 400px;
+      line-height: 1.6;
+    }
+    .suggestions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 520px;
+    }
+    .suggestion {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: left;
+      transition: all .2s;
+      line-height: 1.4;
+    }
+    .suggestion:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+      background: rgba(108, 99, 255, 0.08);
+      transform: translateY(-1px);
+    }
+    .suggestion strong {
+      display: block;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      font-size: 12px;
+    }
+
+    /* ── Message bubbles ── */
+    .message-row {
+      padding: 8px 32px;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .message-row.user { display: flex; justify-content: flex-end; }
+    .message-row.assistant { display: flex; justify-content: flex-start; }
+
+    .bubble {
+      max-width: 72%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 14px;
+      line-height: 1.65;
+      position: relative;
+    }
+    .user .bubble {
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+    .assistant .bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+    .assistant-avatar {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--accent), #a78bfa);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      align-self: flex-end;
+      margin-right: 10px;
+    }
+
+    .bubble code {
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid rgba(108, 99, 255, 0.2);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      color: #a78bfa;
+    }
+    .bubble pre {
+      background: #0a0a18;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 8px 0;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .bubble pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #c9d1d9;
+      font-size: inherit;
+    }
+
+    /* ── Typing indicator ── */
+    .typing-indicator {
+      display: flex; align-items: center; gap: 4px;
+      padding: 12px 16px;
+    }
+    .typing-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: typing-bounce 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Input area ── */
+    .input-area {
+      padding: 16px 32px 24px;
+      background: linear-gradient(to top, var(--bg-primary) 60%, transparent);
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 12px 10px 16px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input-box:focus-within {
+      border-color: var(--border-glow);
+      box-shadow: 0 0 20px rgba(108, 99, 255, 0.1);
+    }
+    #user-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      resize: none;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+    #user-input::placeholder { color: var(--text-muted); }
+    #user-input::-webkit-scrollbar { width: 3px; }
+    #user-input::-webkit-scrollbar-thumb { background: var(--border); }
+    .send-btn {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent-dim), var(--accent));
+      border: none;
+      border-radius: 9px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity .2s, transform .1s;
+      align-self: flex-end;
+    }
+    .send-btn:hover { opacity: 0.85; transform: scale(1.05); }
+    .send-btn:active { transform: scale(0.95); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .input-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    /* ── Scrollbar fix for full-width ── */
+    .messages > * { max-width: 860px; width: 100%; }
+    .messages { display: flex; flex-direction: column; align-items: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🤖</div>
+    <div>
+      <div class="logo-text">semihcim4.0</div>
+      <div class="logo-badge">AI Assistant</div>
+    </div>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    Çevrimiçi
+  </div>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+    <div class="sidebar-title">Sohbetler</div>
+    <button class="new-chat-btn" onclick="newChat()">
+      <span>+</span> Yeni Sohbet
+    </button>
+    <div class="history-list" id="history-list"></div>
+    <div class="sidebar-footer">
+      <div class="model-tag">
+        Model: <span>claude-opus-4-7</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-logo">🤖</div>
+        <h1>semihcim4.0</h1>
+        <p>Merhaba! Ben semihcim4.0, güçlü ve çok yönlü yapay zeka asistanınız. Size nasıl yardımcı olabilirim?</p>
+        <div class="suggestions">
+          <div class="suggestion" onclick="suggest('Python ile web scraping nasıl yapılır?')">
+            <strong>💻 Kod Yazma</strong>
+            Python ile web scraping nasıl yapılır?
+          </div>
+          <div class="suggestion" onclick="suggest('Yapay zeka ve makine öğrenmesi arasındaki fark nedir?')">
+            <strong>🧠 Kavramlar</strong>
+            Yapay zeka ve makine öğrenmesi farkı?
+          </div>
+          <div class="suggestion" onclick="suggest('Bana kısa ve motivasyonel bir hikaye yaz.')">
+            <strong>✍️ Yaratıcı Yazı</strong>
+            Motivasyonel bir hikaye yaz.
+          </div>
+          <div class="suggestion" onclick="suggest('Sağlıklı bir günlük rutin nasıl oluşturabilirim?')">
+            <strong>🌟 Tavsiye</strong>
+            Sağlıklı günlük rutin nasıl kurulur?
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-box">
+        <textarea
+          id="user-input"
+          rows="1"
+          placeholder="semihcim4.0'a bir şeyler sor..."
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Gönder (Enter)">
+          ➤
+        </button>
+      </div>
+      <div class="input-hint">Enter ile gönder · Shift+Enter yeni satır</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let conversationHistory = [];
+  let isStreaming = false;
+  let chatSessions = [];
+  let currentSessionIndex = -1;
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function suggest(text) {
+    document.getElementById('user-input').value = text;
+    sendMessage();
+  }
+
+  function hideWelcome() {
+    const w = document.getElementById('welcome');
+    if (w) w.remove();
+  }
+
+  function scrollToBottom() {
+    const msgs = document.getElementById('messages');
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  function addMessage(role, content) {
+    hideWelcome();
+    const msgs = document.getElementById('messages');
+
+    const row = document.createElement('div');
+    row.className = `message-row ${role}`;
+
+    if (role === 'assistant') {
+      const avatar = document.createElement('div');
+      avatar.className = 'assistant-avatar';
+      avatar.textContent = '🤖';
+      row.appendChild(avatar);
+    }
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = formatMessage(content);
+    row.appendChild(bubble);
+
+    msgs.appendChild(row);
+    scrollToBottom();
+    return bubble;
+  }
+
+  function formatMessage(text) {
+    // Code blocks
+    text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${escapeHtml(code.trim())}</code></pre>`
+    );
+    // Inline code
+    text = text.replace(/`([^`]+)`/g, (_, code) =>
+      `<code>${escapeHtml(code)}</code>`
+    );
+    // Bold
+    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Newlines
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function addTypingIndicator() {
+    hideWelcome();
+    const msgs = document.getElementById('messages');
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    row.id = 'typing-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'assistant-avatar';
+    avatar.textContent = '🤖';
+    row.appendChild(avatar);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = `<div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+    row.appendChild(bubble);
+    msgs.appendChild(row);
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    const t = document.getElementById('typing-row');
+    if (t) t.remove();
+  }
+
+  async function sendMessage() {
+    if (isStreaming) return;
+
+    const input = document.getElementById('user-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    isStreaming = true;
+    document.getElementById('send-btn').disabled = true;
+
+    // Save session title from first message
+    if (conversationHistory.length === 0) {
+      const title = text.length > 40 ? text.slice(0, 40) + '...' : text;
+      currentSessionIndex = chatSessions.length;
+      chatSessions.push({ title, history: [] });
+      renderHistory();
+    }
+
+    conversationHistory.push({ role: 'user', content: text });
+    addMessage('user', text);
+    addTypingIndicator();
+
+    let fullResponse = '';
+    let responseBubble = null;
+
+    try {
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: conversationHistory })
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.error) {
+              removeTypingIndicator();
+              addMessage('assistant', '⚠️ Hata: ' + parsed.error);
+              break;
+            }
+            if (parsed.text) {
+              if (!responseBubble) {
+                removeTypingIndicator();
+                responseBubble = addMessage('assistant', '');
+              }
+              fullResponse += parsed.text;
+              responseBubble.innerHTML = formatMessage(fullResponse);
+              scrollToBottom();
+            }
+          } catch {}
+        }
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage('assistant', '⚠️ Bağlantı hatası. Lütfen tekrar deneyin.');
+    }
+
+    if (fullResponse) {
+      conversationHistory.push({ role: 'assistant', content: fullResponse });
+      if (currentSessionIndex >= 0) {
+        chatSessions[currentSessionIndex].history = [...conversationHistory];
+      }
+    }
+
+    isStreaming = false;
+    document.getElementById('send-btn').disabled = false;
+    input.focus();
+  }
+
+  function newChat() {
+    conversationHistory = [];
+    currentSessionIndex = -1;
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = `<div class="welcome" id="welcome">
+      <div class="welcome-logo">🤖</div>
+      <h1>semihcim4.0</h1>
+      <p>Merhaba! Ben semihcim4.0, güçlü ve çok yönlü yapay zeka asistanınız. Size nasıl yardımcı olabilirim?</p>
+      <div class="suggestions">
+        <div class="suggestion" onclick="suggest('Python ile web scraping nasıl yapılır?')">
+          <strong>💻 Kod Yazma</strong>
+          Python ile web scraping nasıl yapılır?
+        </div>
+        <div class="suggestion" onclick="suggest('Yapay zeka ve makine öğrenmesi arasındaki fark nedir?')">
+          <strong>🧠 Kavramlar</strong>
+          Yapay zeka ve makine öğrenmesi farkı?
+        </div>
+        <div class="suggestion" onclick="suggest('Bana kısa ve motivasyonel bir hikaye yaz.')">
+          <strong>✍️ Yaratıcı Yazı</strong>
+          Motivasyonel bir hikaye yaz.
+        </div>
+        <div class="suggestion" onclick="suggest('Sağlıklı bir günlük rutin nasıl oluşturabilirim?')">
+          <strong>🌟 Tavsiye</strong>
+          Sağlıklı günlük rutin nasıl kurulur?
+        </div>
+      </div>
+    </div>`;
+    document.getElementById('user-input').focus();
+  }
+
+  function loadSession(index) {
+    const session = chatSessions[index];
+    if (!session) return;
+    conversationHistory = [...session.history];
+    currentSessionIndex = index;
+
+    const msgs = document.getElementById('messages');
+    msgs.innerHTML = '';
+
+    for (const msg of conversationHistory) {
+      addMessage(msg.role, msg.content);
+    }
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    chatSessions.slice().reverse().forEach((s, ri) => {
+      const i = chatSessions.length - 1 - ri;
+      const item = document.createElement('div');
+      item.className = 'history-item' + (i === currentSessionIndex ? ' active' : '');
+      item.textContent = s.title;
+      item.onclick = () => loadSession(i);
+      list.appendChild(item);
+    });
+  }
+
+  document.getElementById('user-input').focus();
+</script>
+</body>
+</html>

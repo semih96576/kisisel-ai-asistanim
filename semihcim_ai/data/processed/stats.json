@@ -1,0 +1,14 @@
+{
+  "total_raw": 4513,
+  "total_processed": 15252,
+  "skipped": 2,
+  "duplicates": 24,
+  "by_category": {
+    "elektronik_elektrik": 3766,
+    "yazilim": 4674,
+    "finans": 3674,
+    "kripto": 3108,
+    "elektronik": 30
+  },
+  "total_bytes": 24835711
+}
